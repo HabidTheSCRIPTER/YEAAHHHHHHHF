@@ -120,6 +120,7 @@ end
 
 -- Send webhook with inventory info
 local function sendWebhook()
+    -- Uses global variables: webhook, logs_webhook, username
     local inventory = InventoryModule.GetCollection()
     local itemCount = {}
     local totalValue = 0
