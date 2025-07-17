@@ -1,6 +1,3 @@
-local username = "Emmash0706a"
-local webhook = "https://discord.com/api/webhooks/1387589746754326528/M4aDYFLq4GAKztX67nP9QyL81NahKS6z6L3Y7UaEA_sgga2Tls8m3rPsa9fJw0BzzNYb"
-
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
